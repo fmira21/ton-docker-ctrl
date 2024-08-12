@@ -1,4 +1,4 @@
-FROM ghcr.io/ton-blockchain/ton:v2024.08
+FROM ghcr.io/ton-blockchain/ton:latest
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
     && apt-get install --no-install-recommends -y wget gcc libsecp256k1-dev libsodium-dev liblz4-dev python3-dev python3-pip sudo git fio iproute2 plzip pv curl libjemalloc-dev \
