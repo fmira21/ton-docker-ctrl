@@ -27,65 +27,51 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     && rm -rf /var/lib/apt/lists/* \
     && pip3 install --no-cache-dir psutil crc16 requests
 
-ENV CC clang
-ENV CXX clang++
-ENV CCACHE_DISABLE 1
-ENV OPENSSL_VERSION 3.1.4
-ENV TON_VERSION master
-ENV BIN_DIR /usr/bin
+ARG GLOBAL_CONFIG_URL=https://ton.org/global.config.json
+ARG MYTONCTRL_VERSION=master
 
-WORKDIR /usr/local/src
-
-RUN wget -nv https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz \
-    && tar -xf openssl-${OPENSSL_VERSION}.tar.gz \
-    && cd /usr/local/src/openssl-${OPENSSL_VERSION} \
-    && ./config --prefix=/usr/local/ssl --openssldir=/usr/local/ssl shared zlib \
-    && make build_libs -j$(expr $(nproc) - 1)
-
-WORKDIR ${BIN_DIR}/ton
-
-RUN git clone --depth 1 --branch ${TON_VERSION} --recursive https://github.com/ton-blockchain/ton.git . \
-    && mkdir ${BIN_DIR}/ton/build
-
-WORKDIR ${BIN_DIR}/ton/build
-
-RUN cmake -DCMAKE_BUILD_TYPE=Release -GNinja -DOPENSSL_FOUND=1 -DOPENSSL_INCLUDE_DIR=/usr/local/src/openssl-${OPENSSL_VERSION}/include -DOPENSSL_CRYPTO_LIBRARY=/usr/local/src/openssl-${OPENSSL_VERSION}/libcrypto.a .. \
-    && ninja -j$(expr $(nproc) - 1) fift validator-engine lite-client validator-engine-console generate-random-id dht-server func tonlibjson rldp-http-proxy
+RUN wget https://raw.githubusercontent.com/ton-blockchain/mytonctrl/${MYTONCTRL_VERSION}/scripts/ton_installer.sh -O /tmp/ton_installer.sh \
+    && /bin/bash /tmp/ton_installer.sh -c ${GLOBAL_CONFIG_URL} \
+    && rm -rf /usr/src/ton/.git/modules/*
 
 FROM ubuntu:22.04
-ENV BIN_DIR /usr/bin
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y wget gcc libsecp256k1-dev libsodium-dev liblz4-dev python3-dev python3-pip sudo git fio iproute2 plzip pv curl libjemalloc-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /var/ton-work/db/static /var/ton-work/db/import /var/ton-work/db/keyring
+
+ENV BIN_DIR /usr/bin/
 ARG MYTONCTRL_VERSION=master
 ARG TELEMETRY=false
 ARG DUMP=false
 ARG MODE=validator
+ARG IGNORE_MINIMAL_REQS=true
+ARG GLOBAL_CONFIG_URL=https://ton.org/global.config.json
 
-RUN apt-get update \
-    && apt-get install --no-install-recommends -y wget gcc libsecp256k1-dev libsodium-dev liblz4-dev python3-dev python3-pip sudo git fio iproute2 plzip pv curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p /var/ton-work/db/static /var/ton-work/db/import
-
-COPY --from=ton ${BIN_DIR}/ton/build/lite-client/lite-client ${BIN_DIR}/ton/lite-client/
-COPY --from=ton ${BIN_DIR}/ton/build/validator-engine/validator-engine ${BIN_DIR}/ton/validator-engine/
-COPY --from=ton ${BIN_DIR}/ton/build/validator-engine-console/validator-engine-console ${BIN_DIR}/ton/validator-engine-console/
-COPY --from=ton ${BIN_DIR}/ton/build/utils/generate-random-id ${BIN_DIR}/ton/utils/
-COPY --from=ton ${BIN_DIR}/ton/build/crypto/fift ${BIN_DIR}/ton/crypto/
-COPY --from=ton ${BIN_DIR}/ton/crypto/fift/lib /usr/src/ton/crypto/fift/lib
-COPY --from=ton ${BIN_DIR}/ton/crypto/smartcont /usr/src/ton/crypto/smartcont
-COPY --from=ton ${BIN_DIR}/ton/.git/ /usr/src/ton/.git/
-
-WORKDIR /usr/src/mytonctrl
+COPY --from=ton ${BIN_DIR}/ton/lite-client/lite-client ${BIN_DIR}/ton/lite-client/
+COPY --from=ton ${BIN_DIR}/ton/validator-engine/validator-engine ${BIN_DIR}/ton/validator-engine/
+COPY --from=ton ${BIN_DIR}/ton/validator-engine-console/validator-engine-console ${BIN_DIR}/ton/validator-engine-console/
+COPY --from=ton ${BIN_DIR}/ton/utils/generate-random-id ${BIN_DIR}/ton/utils/
+COPY --from=ton ${BIN_DIR}/ton/crypto/fift ${BIN_DIR}/ton/crypto/
+COPY --from=ton /usr/src/ton/crypto/fift/lib /usr/src/ton/crypto/fift/lib
+COPY --from=ton /usr/src/ton/crypto/smartcont /usr/src/ton/crypto/smartcont
+COPY --from=ton /usr/src/ton/.git/ /usr/src/ton/.git/
 
 RUN wget -nv https://raw.githubusercontent.com/gdraheim/docker-systemctl-replacement/master/files/docker/systemctl3.py -O /usr/bin/systemctl  \
     && chmod +x /usr/bin/systemctl \
-    && wget -nv https://ton.org/testnet-global.config.json -O ${BIN_DIR}/ton/global.config.json \
-    && git clone --depth 1 --branch ${MYTONCTRL_VERSION} --recursive https://github.com/ton-blockchain/mytonctrl.git . \
-    && pip3 install --no-cache-dir -U . \
-    && python3 -m mytoninstaller -u root -t ${TELEMETRY} --dump ${DUMP} -m ${MODE} \
+    && wget https://raw.githubusercontent.com/ton-blockchain/mytonctrl/${MYTONCTRL_VERSION}/scripts/install.sh -O /tmp/install.sh \
+    && sed -i ''  -e 's/TON does not exists, building/Using the official TON image/g' install.sh \
+    && sed -i '' -e '/ton_installer/d' install.sh \
+    && wget -nv ${GLOBAL_CONFIG_URL} -O ${BIN_DIR}/ton/global.config.json \
+    && if [ "$TELEMETRY" = false ]; then export TELEMETRY="-t"; else export TELEMETRY=""; fi && if [ "$IGNORE_MINIMAL_REQS" = true ]; then export IGNORE_MINIMAL_REQS="-i"; else export IGNORE_MINIMAL_REQS=""; fi \
+    && /bin/bash /tmp/install.sh ${TELEMETRY} ${IGNORE_MINIMAL_REQS} -b ${MYTONCTRL_VERSION} -m ${MODE} \
     && ln -sf /proc/$$/fd/1 /usr/local/bin/mytoncore/mytoncore.log \
     && ln -sf /proc/$$/fd/1 /var/log/syslog \
     && sed -i 's/--logname \/var\/ton-work\/log//g; s/--verbosity 1/--verbosity 3/g' /etc/systemd/system/validator.service \
     && sed -i 's/\[Service\]/\[Service\]\nStandardOutput=null\nStandardError=syslog/' /etc/systemd/system/validator.service \
-    && sed -i 's/\[Service\]/\[Service\]\nStandardOutput=null\nStandardError=syslog/' /etc/systemd/system/mytoncore.service
+    && sed -i 's/\[Service\]/\[Service\]\nStandardOutput=null\nStandardError=syslog/' /etc/systemd/system/mytoncore.service \
+    && rm -rf /var/lib/apt/lists/* && rm -rf /root/.cache/pip
 
 VOLUME ["/var/ton-work", "/usr/local/bin/mytoncore"]
 COPY --chmod=755 scripts/entrypoint.sh/ /scripts/entrypoint.sh
