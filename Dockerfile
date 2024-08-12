@@ -61,8 +61,8 @@ COPY --from=ton /usr/src/ton/.git/ /usr/src/ton/.git/
 RUN wget -nv https://raw.githubusercontent.com/gdraheim/docker-systemctl-replacement/master/files/docker/systemctl3.py -O /usr/bin/systemctl  \
     && chmod +x /usr/bin/systemctl \
     && wget https://raw.githubusercontent.com/ton-blockchain/mytonctrl/${MYTONCTRL_VERSION}/scripts/install.sh -O /tmp/install.sh \
-    && sed -i ''  -e 's/TON does not exists, building/Using the official TON image/g' install.sh \
-    && sed -i '' -e '/ton_installer/d' install.sh \
+    && sed -i ''  -e 's/TON does not exists, building/Using the official TON image/g' /tmp/install.sh \
+    && sed -i '' -e '/ton_installer/d' /tmp/install.sh \
     && wget -nv ${GLOBAL_CONFIG_URL} -O ${BIN_DIR}/ton/global.config.json \
     && if [ "$TELEMETRY" = false ]; then export TELEMETRY="-t"; else export TELEMETRY=""; fi && if [ "$IGNORE_MINIMAL_REQS" = true ]; then export IGNORE_MINIMAL_REQS="-i"; else export IGNORE_MINIMAL_REQS=""; fi \
     && /bin/bash /tmp/install.sh ${TELEMETRY} ${IGNORE_MINIMAL_REQS} -b ${MYTONCTRL_VERSION} -m ${MODE} \
