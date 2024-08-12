@@ -16,10 +16,9 @@ ARG GLOBAL_CONFIG_URL=https://ton.org/global.config.json
 RUN wget -nv https://raw.githubusercontent.com/gdraheim/docker-systemctl-replacement/master/files/docker/systemctl3.py -O /usr/bin/systemctl  \
     && chmod +x /usr/bin/systemctl \
     && wget https://raw.githubusercontent.com/ton-blockchain/mytonctrl/${MYTONCTRL_VERSION}/scripts/install.sh -O /tmp/install.sh \
-    && sed -i ''  -e 's/TON does not exists, building/Using the official TON image/g' /tmp/install.sh \
-    && sed -i '' -e '/ton_installer/d' /tmp/install.sh \
     && wget -nv ${GLOBAL_CONFIG_URL} -O ${BIN_DIR}/global.config.json \
     && if [ "$TELEMETRY" = false ]; then export TELEMETRY="-t"; else export TELEMETRY=""; fi && if [ "$IGNORE_MINIMAL_REQS" = true ]; then export IGNORE_MINIMAL_REQS="-i"; else export IGNORE_MINIMAL_REQS=""; fi \
+    && ln -s /usr/bin/ton /usr/local/bin/ton \
     && /bin/bash /tmp/install.sh ${TELEMETRY} ${IGNORE_MINIMAL_REQS} -b ${MYTONCTRL_VERSION} -m ${MODE} \
     && ln -sf /proc/$$/fd/1 /usr/local/bin/mytoncore/mytoncore.log \
     && ln -sf /proc/$$/fd/1 /var/log/syslog \
