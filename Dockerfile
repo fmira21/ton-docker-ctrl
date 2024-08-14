@@ -16,9 +16,9 @@ ARG GLOBAL_CONFIG_URL=https://ton.org/global.config.json
 RUN wget -nv https://raw.githubusercontent.com/gdraheim/docker-systemctl-replacement/master/files/docker/systemctl3.py -O /usr/bin/systemctl  \
     && chmod +x /usr/bin/systemctl \
     && wget https://raw.githubusercontent.com/ton-blockchain/mytonctrl/${MYTONCTRL_VERSION}/scripts/install.sh -O /tmp/install.sh \
-    && sed -i -e 's/file1=\${BIN_DIR}/ton/crypto/fift/file1=\${BIN_DIR}/fift/g' /tmp/install.sh \
-    && sed -i -e 's/file2=\${BIN_DIR}/ton/lite-client/lite-client/file2=\${BIN_DIR}/lite-client/g' /tmp/install.sh \
-    && sed -i -e 's/file3=\${BIN_DIR}/ton/validator-engine-console/validator-engine-console/file3=\${BIN_DIR}/validator-engine-console/g' /tmp/install.sh \
+    && sed -i 's/file1=\${BIN_DIR}/ton/crypto/fift/file1=\${BIN_DIR}/fift/g' /tmp/install.sh \
+    && sed -i 's/file2=\${BIN_DIR}/ton/lite-client/lite-client/file2=\${BIN_DIR}/lite-client/g' /tmp/install.sh \
+    && sed -i 's/file3=\${BIN_DIR}/ton/validator-engine-console/validator-engine-console/file3=\${BIN_DIR}/validator-engine-console/g' /tmp/install.sh \
     && wget -nv ${GLOBAL_CONFIG_URL} -O ${BIN_DIR}/global.config.json \
     && if [ "$TELEMETRY" = false ]; then export TELEMETRY="-t"; else export TELEMETRY=""; fi && if [ "$IGNORE_MINIMAL_REQS" = true ]; then export IGNORE_MINIMAL_REQS="-i"; else export IGNORE_MINIMAL_REQS=""; fi \
     && /bin/bash /tmp/install.sh ${TELEMETRY} ${IGNORE_MINIMAL_REQS} -b ${MYTONCTRL_VERSION} -m ${MODE} \
