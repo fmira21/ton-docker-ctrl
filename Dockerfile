@@ -1,4 +1,4 @@
-FROM ghcr.io/ton-blockchain/ton:latest
+FROM ghcr.io/neodix42/ton:latest
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
     && apt-get install --no-install-recommends -y wget gcc libsecp256k1-dev libsodium-dev liblz4-dev python3-dev python3-pip sudo git fio iproute2 plzip pv curl libjemalloc-dev ninja-build rocksdb-tools \
@@ -33,8 +33,7 @@ RUN wget -nv https://raw.githubusercontent.com/gdraheim/docker-systemctl-replace
     && sed -i 's/--logname \/var\/ton-work\/log//g; s/--verbosity 1/--verbosity 3/g' /etc/systemd/system/validator.service \
     && sed -i 's/\[Service\]/\[Service\]\nStandardOutput=null\nStandardError=syslog/' /etc/systemd/system/validator.service \
     && sed -i 's/\[Service\]/\[Service\]\nStandardOutput=null\nStandardError=syslog/' /etc/systemd/system/mytoncore.service \
-    && rm -rf /var/lib/apt/lists/* && rm -rf /root/.cache/pip VOLUME ["/var/ton-work", "/usr/local/bin/mytoncore"] \
-    && cd /usr/src/ton && git init && git remote add origin https://github.com/ton-blockchain/ton.git
+    && rm -rf /var/lib/apt/lists/* && rm -rf /root/.cache/pip VOLUME ["/var/ton-work", "/usr/local/bin/mytoncore"]
 
 COPY --chmod=755 scripts/entrypoint.sh/ /scripts/entrypoint.sh
 
