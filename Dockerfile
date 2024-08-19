@@ -34,4 +34,8 @@ RUN wget -nv https://raw.githubusercontent.com/gdraheim/docker-systemctl-replace
     && sed -i 's/\[Service\]/\[Service\]\nStandardOutput=null\nStandardError=syslog/' /etc/systemd/system/validator.service \
     && sed -i 's/\[Service\]/\[Service\]\nStandardOutput=null\nStandardError=syslog/' /etc/systemd/system/mytoncore.service \
     && rm -rf /var/lib/apt/lists/* && rm -rf /root/.cache/pip VOLUME ["/var/ton-work", "/usr/local/bin/mytoncore"] \
-    && cd /usr/src/ton && git init && git remote add origin https://github.com/ton-blockchain/ton.git COPY --chmod=755 scripts/entrypoint.sh/ /scripts/entrypoint.sh ENTRYPOINT ["/scripts/entrypoint.sh"]
+    && cd /usr/src/ton && git init && git remote add origin https://github.com/ton-blockchain/ton.git
+
+COPY --chmod=755 scripts/entrypoint.sh/ /scripts/entrypoint.sh
+
+ENTRYPOINT ["/scripts/entrypoint.sh"]
